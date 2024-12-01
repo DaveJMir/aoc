@@ -39,5 +39,9 @@ watch:
 
 .PHONY: run
 run: $(APP)
-	./$(APP) "$(ARGS)" | tee output.txt
-	diff output.txt expected.txt
+	./$(APP) "$(ARGS)"
+
+.PHONY: test
+test: $(APP)
+	@./$(APP) > output.txt
+	@diff -q output.txt expected.txt || exit 1
