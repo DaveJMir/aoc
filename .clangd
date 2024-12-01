@@ -1,0 +1,14 @@
+CompileFlags:
+  Add: [-Wall, --std=c++2b, -I/Users/dmirabit/code/aoc]
+  Remove: [-W*]
+
+Hover:
+  ShowAKA: Yes
+
+InlayHints:
+  BlockEnd: No
+  Designators: Yes
+  Enabled: Yes
+  ParameterNames: Yes
+  DeducedTypes: Yes
+  TypeNameLimit: 24
