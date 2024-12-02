@@ -2,3 +2,6 @@
 */output.txt
 */out/
 day*/day*
+.aoc_session
+.venv/
+__pycache__

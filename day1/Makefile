@@ -1,4 +1,4 @@
-APP=day1
+APP = $(notdir $(CURDIR))
 all: $(APP)
 
 CFLAGS= -Wall -Werror -O0 -ggdb --std=c++2b -MMD -MP -I$(PWD)

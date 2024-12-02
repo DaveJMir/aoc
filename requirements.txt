@@ -1,0 +1,10 @@
+advent-of-code-data==2.0.4
+aocd-example-parser==2023.12.20
+beautifulsoup4==4.12.3
+markdown-it-py==3.0.0
+mdurl==0.1.2
+Pebble==5.1.0
+Pygments==2.18.0
+rich==13.9.4
+soupsieve==2.6
+urllib3==2.2.3
