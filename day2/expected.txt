@@ -1,0 +1,2 @@
+Safe count: 686
+Damp count: 717
