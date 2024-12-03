@@ -14,17 +14,15 @@ int isSafe(std::span<int> values)
         return std::get<1>(pair) - std::get<0>(pair);
       });
 
-    auto [allPositive, allNegative, allInRange] = std::accumulate(
-        deltas.begin(), deltas.end(), std::make_tuple(true, true, true),
-        [](std::tuple<bool, bool, bool> acc, int x) {
-            auto& [pos, neg, range] = acc;
-            bool inRange = (std::abs(x) <= 3)  && (std::abs(x) >= 1);
-            return std::make_tuple(pos && x > 0,
-                                   neg && x < 0,
-                                   range && inRange);
-        });
+    int direction = 0;
+    for (auto x : deltas) {
+      if ((std::abs(x) > 3) || (std::abs(x) < 1)) return 0;
+      int sign = x / std::abs(x);
+      if ((direction * sign) == -1) return 0;
+      direction = sign;
+    }
 
-    return (allPositive || allNegative) && allInRange;
+    return 1;
 }
 
 int isDampenedSafe(std::span<int> values)
