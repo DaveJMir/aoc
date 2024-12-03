@@ -1,0 +1,5 @@
+Example Part1: 161
+Example Part2: 48
+
+Input Part1: 173731097
+Input Part2: 93729253
