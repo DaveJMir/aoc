@@ -1,90 +1,55 @@
 
-#include "util/util.hpp"
+#include "util/grid.hpp"
 
-#include <regex>
+#include <algorithm>
+#include <numeric>
+#include <iostream>
+#include <ranges>
+
+#include <vector>
+#include <string>
+#include <set>
 #include <iostream>
 #include <cassert>
 
-int find_str(const std::vector<std::string>& grid, int x, int y, int stepX, int stepY, std::string_view target)
-{
+using Grid = aoc::util::Grid;
 
-  if(target.empty()) return 1;
-  if (x < 0)
-    return 0;
-  if (x >= grid[0].size())
-    return 0;
-  if (y < 0)
-    return 0;
-  if (y >= grid.size())
-    return 0;
-
-  if(grid[x][y] != target[0]) return 0;
-  return find_str(grid, x+stepX, y+stepY, stepX, stepY, target.substr(1));
-}
-
-int find_str(const std::vector<std::string>& grid, int x, int y, std::string_view target)
+int find_xmas(Grid::Iterator it, const Grid::offset direction, std::string_view target)
 {
   if(target.empty()) return 1;
-  if (x < 0)
-    return 0;
-  if (x >= grid[0].size())
-    return 0;
-  if (y < 0)
-    return 0;
-  if (y >= grid.size())
-    return 0;
-
-  if(grid[x][y] != target[0]) return 0;
-
-  int found =0;
-
-  found += find_str(grid, x, y, -1, -1, target);
-  found += find_str(grid, x, y,  0, -1, target);
-  found += find_str(grid, x, y,  1, -1, target);
-
-  found += find_str(grid, x, y, -1,  0, target);
-  found += find_str(grid, x, y,  0,  0, target);
-  found += find_str(grid, x, y,  1,  0, target);
-
-  found += find_str(grid, x, y, -1, +1, target);
-  found += find_str(grid, x, y,  0, +1, target);
-  found += find_str(grid, x, y,  1, +1, target);
-  return found;
+  if(it.isOutOfBounds()) return 0;
+  if(*it != target.front()) return 0;
+  return find_xmas(it + direction, direction, target.substr(1));
 }
 
-int notit(char a)
+int find_xmas(Grid::Iterator it)
 {
-  if (a == 'X') return 1;
-  if (a == 'A') return 1;
-  return 0;
+  if(*it != 'X') return 0;
+  static const std::array<Grid::offset, 8> directions = {
+      Grid::North,     Grid::South,     Grid::East,      Grid::West,
+      Grid::NorthEast, Grid::NorthWest, Grid::SouthEast, Grid::SouthWest};
+
+  auto partialSums = directions | std::ranges::views::transform(
+                                      [&](const Grid::offset &direction) {
+                                        return find_xmas(it+direction, direction, "MAS");
+                                      });
+  return std::accumulate(partialSums.begin(), partialSums.end(), 0);
 }
 
-int find_x_mas(const std::vector<std::string>& grid, int x, int y)
+int find_x_mas(Grid::Iterator it)
 {
-  if(grid[x][y] != 'A') return 0;
-  if( (x==0) || (y==0)) return 0;
-  if (x == grid[0].size()-1) return 0;
-  if (y == grid.size()-1) return 0;
+  static const std::set<char> validXLegs = {'M', 'S'};
+  if(*it != 'A') return 0;
 
-  char ul = grid[x-1][y+1];
-  char ur = grid[x+1][y+1];
+  char ne = *(it+Grid::NorthEast);
+  char sw = *(it+Grid::SouthWest);
+  char nw = *(it+Grid::NorthWest);
+  char se = *(it+Grid::SouthEast);
 
-  char ll = grid[x-1][y-1];
-  char lr = grid[x+1][y-1];
-
-  if(notit(ul)) return 0;
-  if(notit(ur)) return 0;
-  if(notit(ll)) return 0;
-  if(notit(lr)) return 0;
-
-  if ( (ul != lr) && (ur != ll))
-  {
-     return 1;
-  }
-  return 0;
-
-
-
+  auto values = {ne, sw, nw, se};
+  return std::all_of(values.begin(), values.end(),
+                     [&](char c) { return validXLegs.contains(c); }) &&
+         ne != sw && nw != se;
 }
 
 int main() {
@@ -94,38 +59,15 @@ int main() {
   std::ifstream input{"example.txt"};
   #endif
 
-  std::vector<std::string> grid{};
-  int width = 0;
-  int height = 0;
-
-  aoc::util::foreach_line(input, [&](std::string_view line) {
-    if (width && line.size() != width) {
-      assert(!"Why not square?");
-    }
-    width = line.size();
-    grid.push_back(std::string{line});
-  });
-  height = grid.size();
-
-  int total = 0;
-  for(int x=0; x < width; x++)
+  int total_xmas{0};
+  int total_x_mas{0};
+  Grid grid{std::move(input)};
+  for(auto it = grid.begin(); it != grid.end(); ++it)
   {
-    for(int y=0; y<height; y++)
-    {
-      total += find_str(grid, x, y, "XMAS");
-    }
+    total_xmas += find_xmas(it);
+    total_x_mas += find_x_mas(it);
   }
-  std::cout << "Input Part1: " << total << "\n";
-
-  total = 0;
-  for(int x=0; x < width; x++)
-  {
-    for(int y=0; y<height; y++)
-    {
-      total += find_x_mas(grid, x, y);
-    }
-  }
-  std::cout << "Input Part2: " << total << "\n";
-
+  std::cout << "Input Part1: " << total_xmas << "\n";
+  std::cout << "Input Part2: " << total_x_mas << "\n";
   return 0;
 }
