@@ -17,10 +17,10 @@ inline std::string_view trimmed(std::string_view str)
 }
 
 template<typename T>
-inline std::vector<T> string2vec(std::string_view s)
+inline std::vector<T> string2vec(std::string_view s, char c = ' ')
 {
     std::vector<T> result{};
-    for(const auto part : std::ranges::views::split(s, ' '))
+    for(const auto part : std::ranges::views::split(s, c))
     {
         std::string_view token(part.begin(), part.end());
         T value;
