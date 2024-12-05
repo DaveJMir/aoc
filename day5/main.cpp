@@ -2,6 +2,7 @@
 #include "util/util.hpp"
 
 #include <algorithm>
+#include <list>
 #include <numeric>
 #include <iostream>
 #include <ranges>
@@ -11,6 +12,7 @@
 #include <string>
 #include <sstream>
 #include <set>
+#include <map>
 #include <iostream>
 #include <cassert>
 
@@ -43,16 +45,55 @@ bool obeys_constraint(const std::vector<int>& update, std::pair<int,int> rule)
   return firstIdx < secondIdx;
 }
 
+struct Ordering
+{
+  std::set<int> smaller{};
+  std::set<int> larger{};
+};
+
+std::map<int, Ordering> relations{};
+
+struct MapSorter {
+  MapSorter(const std::map<int, Ordering> &relations)
+      : theRelations{relations} {}
+
+    bool operator()(int a, int b) const
+    {
+      const auto& ordering = theRelations.at(a);
+      if(ordering.larger.contains(b))
+      {
+        return true;
+      }
+
+      if(ordering.smaller.contains(b))
+      {
+        return false;
+      }
+
+      assert(false && "wtf");
+    }
+
+private:
+  const std::map<int, Ordering> &theRelations;
+};
+
 // first is middle when correct
 // second is middle once fixed
 // probably both wont be non-zero?
 std::pair<int,int> validate_update(const std::vector<int>& update, const std::vector<std::pair<int,int>>& rules)
 {
-  for( const auto& rule : rules)
-  {
+    for (const auto &rule : rules) {
     if(!obeys_constraint(update, rule))
     {
-      return std::make_pair(0,0);
+      MapSorter compare{relations};
+      std::vector<int> sorted{};
+      for(const auto& x : update)
+      {
+        auto pos =
+            std::lower_bound(sorted.begin(), sorted.end(), x, compare);
+        sorted.insert(pos, x);
+      }
+      return std::make_pair(0, sorted[update.size() / 2]);
     }
   }
   return std::make_pair(update[update.size()/2], 0);
@@ -80,9 +121,13 @@ int main() {
     }
 
     if(processingRules){
-      //  std::cout << "Rule: " << line << "\n";
        auto ruleVec = splitStringBy({line}, '|');
-       rules.emplace_back(ruleVec[0], ruleVec[1]);
+       int smaller = ruleVec[0];
+       int larger = ruleVec[1];
+       rules.emplace_back(smaller, larger);
+       relations[smaller].larger.insert(larger);
+       relations[larger].smaller.insert(smaller);
+
     } else {
       //  std::cout << "Update: " << line << "\n";
        updates.emplace_back(splitStringBy({line}, ','));
@@ -97,6 +142,7 @@ int main() {
   {
     auto result = validate_update(update, rules);
     part1 += result.first;
+    part2 += result.second;
   }
 
 
