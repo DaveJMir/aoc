@@ -31,6 +31,7 @@ class Grid {
 
 public:
   using offset = std::pair<int, int>;
+  using coord = std::pair<int, int>;
 
     static constexpr offset North = {0, -1};
     static constexpr offset South = {0, 1};
@@ -149,6 +150,10 @@ public:
   //   }
   //   return ' '; // Out-of-bounds returns space
   // }
+
+  offset bounds() const { return {width, height}; }
+  bool inBound(coord c) const { return c.first >= 0 && c.first < width && c.second >= 0 && c.second < height; }
+
   char &at(int x, int y) {
     if (x >= 0 && x < width && y >= 0 && y < height) {
       return gridData[y][x];
@@ -176,5 +181,27 @@ public:
     return os << " }";
   }
 };
+
+Grid::coord operator-(const Grid::coord& a, const Grid::coord& b) {
+    return {a.first - b.first, a.second - b.second};
+}
+std::ostream& operator<<(std::ostream& os, const Grid::coord& c) {
+    os << "(" << c.first << ", " << c.second << ")";
+    return os;
+}
+Grid::coord operator+(const Grid::coord& a, const Grid::coord& b) {
+    return {a.first + b.first, a.second + b.second};
+}
+Grid::coord operator-(const Grid::coord& c) {
+    return {-c.first, -c.second};
+}
+
+Grid::coord operator*(const Grid::coord &c, int scalar) {
+  return {c.first * scalar, c.second * scalar};
+}
+
+Grid::coord operator*(int scalar, const Grid::coord& c) {
+    return c * scalar;
+}
 
 }
