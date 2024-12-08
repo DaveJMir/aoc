@@ -1,5 +1,5 @@
 Example Part1: 3749
-Example Part2: 0
+Example Part2: 11387
 
 Part1: 20281182715321
-Part2: 0
+Part2: 159490400628354

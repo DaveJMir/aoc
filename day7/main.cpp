@@ -1,122 +1,77 @@
 #include "util/util.hpp"
-#include "util/permutation.hpp"
 
-#include <vector>
-#include <string_view>
-#include <ranges>
-#include <set>
 #include <span>
+#include <string_view>
+#include <vector>
 
 using namespace aoc::util;
 
-struct Equation
-{
+std::uint64_t concatenate(std::uint64_t a, std::uint64_t b) {
+  std::uint64_t scale = [](std::uint64_t term) {
+    if (term < 10)
+      return 10;
+    if (term < 100)
+      return 100;
+    if (term < 1000)
+      return 1000;
+    throw std::runtime_error("Bad term");
+  }(b);
+  return a * scale + b;
+}
+
+struct Equation {
   std::uint64_t answer;
   std::vector<std::uint64_t> terms;
 
-  bool isSatisfied(std::string_view operators) const
-  {
-    auto op = operators.begin();
+  bool satisfyable(uint64_t val, std::span<std::uint64_t> terms,
+                   bool maybeConcat) {
+    if (terms.empty())
+      return answer == val;
+    if (val > answer)
+      return false;
 
-    auto result = terms[0];
-    for (auto term : terms | std::views::drop(1)) {
-      switch (*op) {
-      case '+':
-        result += term;
-        break;
-      case '*':
-        result *= term;
-        break;
-      default:
-        throw std::runtime_error("Bad operator");
-      }
-      op++;
-    }
-
-    if(result == answer)
-    {
-      return true;
-    }
-      // std::cout << "FALSe!\n";
-    return false;
+    const auto first = terms[0];
+    const auto rest = terms.subspan(1);
+    return satisfyable(val + first, rest, maybeConcat) ||
+           satisfyable(val * first, rest, maybeConcat) ||
+           (satisfyable(concatenate(val, first), rest, maybeConcat) &&
+            maybeConcat);
   }
 
-  bool satisfyable() const {
-    int numSlots = terms.size() - 1;
-    return generatePermutations("*+", numSlots, [this](std::string_view perm) {
-      return isSatisfied(perm);
-    });
+  bool satisfyable(bool maybeConcat) {
+    const auto first = terms[0];
+    auto rest = std::span{terms}.subspan(1);
+    return satisfyable(first, rest, maybeConcat) ||
+           satisfyable(first, rest, maybeConcat) ||
+           (satisfyable(first, rest, maybeConcat) && maybeConcat);
   }
 };
 
-Equation parseEquation(std::string_view line)
-{
+Equation parseEquation(std::string_view line) {
   Equation ret{};
-  if(size_t colon = line.find(':'); colon != std::string_view::npos){
+  if (size_t colon = line.find(':'); colon != std::string_view::npos) {
     ret.answer = std::stoull(std::string{line.substr(0, colon)});
-    ret.terms = string2vec<std::uint64_t>(line.substr(colon+2), ' ');
+    ret.terms = string2vec<std::uint64_t>(line.substr(colon + 2), ' ');
     return ret;
   }
   throw std::runtime_error("Bad parse");
 }
 
-void ps(const auto& set)
-{
-  std::cout <<"{";
-  for(auto i : set) std::cout << " " << i;
-  std::cout << " }\n";
-}
-
-bool cheat(const Equation &eq) {
-  std::set<std::uint64_t> candidates{};
-    candidates.insert(eq.terms[0]);
-
-  for(auto term : eq.terms|std::views::drop(1))
-  {
-    ps(candidates);
-    std::cout << "+*" << term << "\n";
-    std::set<std::uint64_t> newCandidates{};
-    for(auto candidate : candidates)
-    {
-      if(candidate*term <= eq.answer) newCandidates.insert(candidate * term);
-      if(candidate+term <= eq.answer) newCandidates.insert(candidate + term);
-    }
-    candidates = newCandidates;
-  }
-  ps(candidates);
-  return candidates.contains(eq.answer);
-}
-
-bool redux(std::uint64_t answer, uint64_t val, std::span<std::uint64_t> terms) {
-  std::cout << "Consider: "<< answer << " == " << val << "?"; ps(terms);
-  if (terms.empty())
-    return answer == val;
-
-
-  if (val > answer)
-    return false;
-  return redux(answer, val + terms[0], terms.subspan(1)) ||
-         redux(answer, val * terms[0], terms.subspan(1));
-}
-
-std::pair<uint64_t, uint64_t> processInput(std::ifstream&& input){
+std::pair<uint64_t, uint64_t> processInput(std::ifstream &&input) {
 
   std::uint64_t part1{0};
+  std::uint64_t part2{0};
   foreach_line(input, [&](std::string_view line) {
     auto eq = parseEquation(line);
-
-    auto og = eq.satisfyable();
-    if(og)
-    {
+    if (eq.satisfyable(false)) {
       part1 += eq.answer;
     }
-    else{
+    if (eq.satisfyable(true)) {
+      part2 += eq.answer;
     }
   });
-  return {part1,0};
+  return {part1, part2};
 }
-
-
 
 int main() {
   auto [exPart1, exPart2] = processInput(std::ifstream{"example.txt"});
