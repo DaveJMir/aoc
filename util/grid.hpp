@@ -58,12 +58,12 @@ public:
     using iterator_category = std::bidirectional_iterator_tag;
     using difference_type = std::ptrdiff_t;
     using value_type = char;
-    using pointer = const char *;
-    using reference = const char &;
+    using pointer = char *;
+    using reference = char&;
 
-    Iterator(int x, int y, const Grid *grid) : x(x), y(y), grid(grid) {}
+    Iterator(int x, int y, Grid *grid) : x(x), y(y), grid(grid) {}
 
-    value_type operator*() const { return grid->at(x, y); }
+    reference operator*() { return grid->at(x, y); }
 
     Iterator &operator++() {
       if (++x == grid->width) {
@@ -91,6 +91,11 @@ public:
       return x < 0 || y < 0 || x >= grid->width || y >= grid->height;
     }
 
+    std::pair<int, int> coords() const
+    {
+      return {x,y};
+    }
+
     Iterator operator+(const offset &offs) const {
       return Iterator(x + offs.first, y + offs.second, grid);
     }
@@ -112,22 +117,63 @@ public:
   protected:
     friend class Grid;
     int x, y;
-    const Grid *grid;
+    Grid *grid;
   };
 
-  Iterator begin() const { return Iterator(0, 0, this); }
-  Iterator end() const { return Iterator(-1, -1, this); }
+  Iterator begin() { return Iterator(0, 0, this); }
+  Iterator end() { return Iterator(-1, -1, this); }
 
-  char operator[](const Iterator &it) const {
+  char& operator[](Iterator &it) {
     assert(it.grid == this);
     return *it;
   }
 
-  char at(int x, int y) const {
+  Iterator find(char c) 
+  {
+    for(auto it = begin(); it != end(); ++it)
+    {
+      if (*it == c)
+        return it;
+    }
+    return end();
+  }
+
+  Iterator iterAt(std::pair<int,int> pos)
+  {
+    return Iterator(pos.first, pos.second, this);
+  }
+
+  // char at(int x, int y) const {
+  //   if (x >= 0 && x < width && y >= 0 && y < height) {
+  //     return gridData[y][x];
+  //   }
+  //   return ' '; // Out-of-bounds returns space
+  // }
+  char &at(int x, int y) {
     if (x >= 0 && x < width && y >= 0 && y < height) {
       return gridData[y][x];
     }
-    return ' '; // Out-of-bounds returns space
+    static char outOfBounds = ' '; // Fallback for out-of-bounds
+    return outOfBounds;
+  }
+
+  const char &at(int x, int y) const {
+    if (x >= 0 && x < width && y >= 0 && y < height) {
+      return gridData[y][x];
+    }
+    static char outOfBounds = ' '; // Fallback for out-of-bounds
+    return outOfBounds;
+  }
+
+  friend std::ostream &operator<<(std::ostream &os, const Grid &g) {
+    os << "Grid{";
+    for (int y = 0; y < g.height; y++) {
+      os << "\n  ";
+      for (int x = 0; x < g.width; x++) {
+        os << g.at(x, y);
+      }
+    }
+    return os << " }";
   }
 };
 

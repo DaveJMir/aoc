@@ -1,3 +1,5 @@
+#pragma once
+
 #include <charconv>
 #include <fstream>
 #include <ranges>
