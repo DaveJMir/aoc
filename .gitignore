@@ -2,6 +2,7 @@
 */output.txt
 */out/
 day*/day*
+skeleton/skeleton
 .aoc_session
 .venv/
 __pycache__
