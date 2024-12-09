@@ -44,4 +44,4 @@ run: $(APP)
 .PHONY: test
 test: $(APP)
 	@./$(APP) > output.txt
-	@diff  output.txt expected.txt || exit 1
+	@diff -u --color=always  output.txt expected.txt || exit 1
