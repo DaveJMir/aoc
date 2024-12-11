@@ -1,4 +1,3 @@
-
 #include "util/util.hpp"
 
 #include <regex>
@@ -26,23 +25,12 @@ int multiply(std::string line, bool obeyDoDont) {
   return total;
 }
 
-int main() {
-  std::ifstream input{"input.txt"};
-  std::string inputStr((std::istreambuf_iterator<char>(input)),
-                       std::istreambuf_iterator<char>());
+std::pair<std::uint64_t, std::uint64_t> process(std::ifstream &&input) {
 
-  auto example_p1 = std::string("xmul(2,4)%&mul[3,7]!@^do_not_mul(5,5)+mul(32,64]"
-                          "then(mul(11,8)mul(8,5))");
+  // example has two lines, one for part1 and one for part2
+  // input has one line, to be used for both parts.
+  auto inputs = aoc::util::splitExampleByParts(input);
 
-  auto example_p2 = std::string("xmul(2,4)&mul[3,7]!^don't()_mul(5,5)+mul(32,"
-                                "64](mul(11,8)undo()?mul(8,5))");
-
-
-  std::cout << "Example Part1: " << multiply(example_p1, false) << "\n";
-  std::cout << "Example Part2: " << multiply(example_p2, true) << "\n";
-  std::cout << "\n";
-  std::cout << "Input Part1: " << multiply(inputStr, false) << "\n";
-  std::cout << "Input Part2: " << multiply(inputStr, true) << "\n";
-
-  return 0;
+  // either way, part1 is the first string and part2 is the last one
+  return {multiply(inputs.front(), false), multiply(inputs.back(), true)};
 }

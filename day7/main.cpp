@@ -57,7 +57,7 @@ Equation parseEquation(std::string_view line) {
   throw std::runtime_error("Bad parse");
 }
 
-std::pair<uint64_t, uint64_t> processInput(std::ifstream &&input) {
+std::pair<uint64_t, uint64_t> process(std::ifstream &&input) {
 
   std::uint64_t part1{0};
   std::uint64_t part2{0};
@@ -71,16 +71,4 @@ std::pair<uint64_t, uint64_t> processInput(std::ifstream &&input) {
     }
   });
   return {part1, part2};
-}
-
-int main() {
-  auto [exPart1, exPart2] = processInput(std::ifstream{"example.txt"});
-  std::cout << "Example Part1: " << exPart1 << "\n";
-  std::cout << "Example Part2: " << exPart2 << "\n";
-
-  auto [part1, part2] = processInput(std::ifstream{"input.txt"});
-  std::cout << "\nPart1: " << part1 << "\n";
-  std::cout << "Part2: " << part2 << "\n";
-
-  return 0;
 }

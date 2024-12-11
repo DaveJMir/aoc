@@ -34,13 +34,8 @@ Result process_update(const Update& update, Rules rules)
   return std::unexpected(sorted[middleIndex]);
 }
 
-int main() {
-#if 1
-  std::ifstream input{"input.txt"};
-#else
-  std::ifstream input{"example.txt"};
-#endif
-
+std::pair<std::uint64_t, std::uint64_t> process(std::ifstream&& input)
+{
   Rules rules{};
   std::vector<Update> updates{};
 
@@ -77,7 +72,5 @@ int main() {
         return acc;
       });
 
-  std::cout << "Part1: " << part1 << "\n";
-  std::cout << "Part2: " << part2 << "\n";
-  return 0;
+  return { part1, part2 };
 }

@@ -4,15 +4,8 @@
 #include <iostream>
 #include <ranges>
 
-int main()
+std::pair<std::uint64_t, std::uint64_t> process(std::ifstream&& input)
 {
-  std::ifstream input{"input.txt"};
-  if(!input.good())
-  {
-    std::cerr << "Unable to open: intput.txt: " << std::strerror(errno) << "\n";
-    return 1;
-  }
-
   std::multiset<int> leftList, rightList;
   int left, right;
   while (input >> left >> right) {
@@ -27,6 +20,5 @@ int main()
     similarity += left * rightList.count(left);
   }
 
-  std::cout << "Distance  : " << distance << "\n";
-  std::cout << "Similarity: " << similarity << "\n";
+  return { distance, similarity};
 }

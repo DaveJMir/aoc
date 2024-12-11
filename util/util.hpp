@@ -6,6 +6,7 @@
 #include <iostream>
 #include <vector>
 #include <string_view>
+#include <sstream>
 
 namespace aoc::util
 {
@@ -50,6 +51,24 @@ inline int foreach_line(std::ifstream& stream, CB&& callback)
   }
   return count;
 
+}
+
+inline std::vector<std::string> splitExampleByParts(std::ifstream& input) {
+    std::vector<std::ostringstream> parts(1); // Start with one part
+    foreach_line(input, [&parts](std::string_view line)
+    {
+        if (line == "##PART2##") {
+            parts.emplace_back();
+            return;
+        }
+        parts.back() << line << "\n";
+    });
+
+    std::vector<std::string> result;
+    for (auto& part : parts) {
+        result.push_back(part.str());
+    }
+    return result;
 }
 
 }

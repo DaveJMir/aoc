@@ -52,13 +52,8 @@ int find_x_mas(Grid::Iterator it)
          ne != sw && nw != se;
 }
 
-int main() {
-  #if 1
-  std::ifstream input{"input.txt"};
-  #else
-  std::ifstream input{"example.txt"};
-  #endif
-
+std::pair<std::uint64_t, std::uint64_t> process(std::ifstream&& input)
+{
   int total_xmas{0};
   int total_x_mas{0};
   Grid grid{std::move(input)};
@@ -67,7 +62,5 @@ int main() {
     total_xmas += find_xmas(it);
     total_x_mas += find_x_mas(it);
   }
-  std::cout << "Input Part1: " << total_xmas << "\n";
-  std::cout << "Input Part2: " << total_x_mas << "\n";
-  return 0;
+  return {total_xmas, total_x_mas};
 }

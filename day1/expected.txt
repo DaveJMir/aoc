@@ -1,2 +1,5 @@
-Distance  : 1970720
-Similarity: 17191599
+Example Part1: 0
+Example Part2: 0
+
+Part1: 1970720
+Part2: 17191599

@@ -117,7 +117,7 @@ class Map
 };
 
 
-std::pair<int,int> run(Map map)
+std::pair<uint64_t,uint64_t> run(Map map)
 {
   std::map<std::pair<int,int>, std::set<Facing>> seenP1;
 
@@ -173,22 +173,7 @@ std::pair<int,int> run(Map map)
   return { seenP1.size(), loops};
 }
 
-int main() {
-
-  {
-    Map exampleMap{std::ifstream{"example.txt"}};
-    auto [part1, part2] = run(std::move(exampleMap));
-    std::cout << "Example Part1: " << part1 << "\n";
-    std::cout << "Example Part2: " << part2 << "\n";
-  }
-
-  {
-    Map map{std::ifstream{"input.txt"}};
-    auto [part1, part2] = run(std::move(map));
-    std::cout << "\n";
-    std::cout << "Part1: " << part1 << "\n";
-    std::cout << "Part2: " << part2 << "\n";
-  }
-
-  return 0;
+std::pair<std::uint64_t, std::uint64_t> process(std::ifstream&& input)
+{
+  return run(Map{std::move(input)});
 }

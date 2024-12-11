@@ -1,2 +1,5 @@
-Input Part1: 2644
-Input Part2: 1952
+Example Part1: 18
+Example Part2: 9
+
+Part1: 2644
+Part2: 1952

@@ -6,3 +6,4 @@ skeleton/skeleton
 .aoc_session
 .venv/
 __pycache__
+out

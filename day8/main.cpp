@@ -62,7 +62,7 @@ std::pair<std::set<Grid::coord>, std::set<Grid::coord>> processTower(char tower,
   return {primary_antinodes, resonant_antinodes};
 }
 
-std::pair<int, int> processInput(Grid &&grid) {
+std::pair<uint64_t, uint64_t> process(Grid &&grid) {
   Towers towers{};
   for (auto it = grid.begin(); it != grid.end(); ++it) {
     if (is_tower(it)) {
@@ -85,14 +85,7 @@ std::pair<int, int> processInput(Grid &&grid) {
   return {part1.size(), part2.size()};
 }
 
-int main() {
-  auto [exPart1, exPart2] = processInput(Grid{std::ifstream{"example.txt"}});
-  std::cout << "Example Part1: " << exPart1 << "\n";
-  std::cout << "Example Part2: " << exPart2 << "\n";
-
-  auto [part1, part2] = processInput(Grid{std::ifstream{"input.txt"}});
-  std::cout << "\nPart1: " << part1 << "\n";
-  std::cout << "Part2: " << part2 << "\n";
-
-  return 0;
+std::pair<std::uint64_t, std::uint64_t> process(std::ifstream&& input)
+{
+  return process(Grid{std::move(input)});
 }

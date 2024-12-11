@@ -39,21 +39,15 @@ int isDampenedSafe(std::span<int> values)
 }
 
 
-int main()
+std::pair<std::uint64_t, std::uint64_t> process(std::ifstream&& input)
 {
-  std::ifstream input{"input.txt"};
-
   int safeCount = 0;
   int dampCount = 0;
   aoc::util::foreach_line(input, [&](std::string_view line) {
-    // std::cout << "Processed line: " << line << std::endl;
     auto report = aoc::util::string2vec<int>(line);
     safeCount += isSafe(report);
     dampCount += isDampenedSafe(report);
   });
 
-  std::cout << "Safe count: " << safeCount << "\n";
-  std::cout << "Damp count: " << dampCount << "\n";
-
-  return 0;
+  return { safeCount, dampCount };
 }

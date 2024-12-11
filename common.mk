@@ -5,11 +5,11 @@ CFLAGS= -Wall -Werror -O3 -ggdb --std=c++2b -MMD -MP -I$(PWD) -I$(PWD)/..
 LDFLAGS=
 
 CXX=clang++
-CPP=main.cpp
+CPP=main.cpp ../main.cpp
 HDR=
 SRC=$(CPP) $(HDR)
 
-OUT = out
+OUT = ../out/$(APP)/
 OBJ = $(addprefix $(OUT)/, $(CPP:.cpp=.o))
 DEPS = $(addprefix $(OUT)/, $(CPP:.cpp=.d))
 

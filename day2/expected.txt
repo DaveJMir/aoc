@@ -1,2 +1,5 @@
-Safe count: 686
-Damp count: 717
+Example Part1: 0
+Example Part2: 0
+
+Part1: 686
+Part2: 717
