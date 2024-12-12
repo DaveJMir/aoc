@@ -1,7 +1,7 @@
 APP = $(notdir $(CURDIR))
 all: $(APP)
 
-CFLAGS= -Wall -Werror -O3 -ggdb --std=c++2b -MMD -MP -I$(PWD) -I$(PWD)/..
+CFLAGS= -Wall -Werror -O3 -ggdb --std=c++2c -MMD -MP -I$(PWD) -I$(PWD)/..
 LDFLAGS=
 
 CXX=clang++
