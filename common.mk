@@ -1,16 +1,16 @@
 APP = $(notdir $(CURDIR))
 all: $(APP)
 
-CFLAGS= -Wall -Werror -O3 -ggdb --std=c++2c -MMD -MP -I$(PWD) -I$(PWD)/..
+CFLAGS= -Wall -Werror -O3 -ggdb --std=c++23 -MMD -MP -I$(PWD) -I$(PWD)/..
 LDFLAGS=
 
-CXX=clang++
-CPP=main.cpp ../main.cpp
+CXX= $(shell brew --prefix llvm@18)/bin/clang++
+CPP=main.cpp
 HDR=
 SRC=$(CPP) $(HDR)
 
 OUT = ../out/$(APP)/
-OBJ = $(addprefix $(OUT)/, $(CPP:.cpp=.o))
+OBJ = $(addprefix $(OUT)/, $(CPP:.cpp=.o)) ../out/harness.o
 DEPS = $(addprefix $(OUT)/, $(CPP:.cpp=.d))
 
 -include $(DEPS)
@@ -18,6 +18,10 @@ DEPS = $(addprefix $(OUT)/, $(CPP:.cpp=.d))
 debug:
 	@echo deps: $(DEPS)
 	@echo objs: $(OBJ)
+
+../out/harness.o: ../harness.cpp
+	@mkdir -p ../out
+	$(CXX) $(CFLAGS) $< -c -o$@ -MF$(@:.o=.d)
 
 $(OUT)/%.o: %.cpp
 	@mkdir -p $(dir $(OUT)/$<)
@@ -43,5 +47,4 @@ run: $(APP)
 
 .PHONY: test
 test: $(APP)
-	@./$(APP) > output.txt
-	@diff  output.txt expected.txt || exit 1
+	./$(APP) && echo OK || echo fail

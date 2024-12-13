@@ -1,18 +1,29 @@
-DAYS := $(wildcard day*)
+DAYS := $(shell find . -maxdepth 1 -type d -name 'day*' | sort) skeleton
+BINS := $(foreach day,$(DAYS),$(day)/$(notdir $(day)))
 
-GREEN := \033[0;32m
-RED := \033[0;31m
-NC := \033[0m
+.PHONY: all clean test
 
-.PHONY: test
-test:
-	@echo "Running all tests... $(DAYS)"
-	@for day in $(DAYS); do \
-		echo "Running test for $$day"; \
-		if $(MAKE) -C $$day test; then \
-			echo  "    $(GREEN)Test passed for $$day$(NC)"; \
-		else \
-			echo  "    $(RED)Test failed for $$day$(NC)"; \
-		fi; \
-	done
-	@echo "All tests completed"
+
+# Default rule: build all days
+all: $(BINS)
+
+# Clean all days
+clean: $(addsuffix /.clean, $(DAYS))
+
+# Test all days
+test: $(addsuffix /.test, $(DAYS))
+
+# Include each day's rules as targets
+$(BINS):
+	$(MAKE) -C $(dir $@)
+
+# Per-day clean and test rules
+%/.clean:
+	$(MAKE) -C $(dir $@) clean
+
+%/.test:
+	$(MAKE) -C $(dir $@) test
+
+debug:
+	@echo days $(DAYS)
+	@echo bins $(BINS)

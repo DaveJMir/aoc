@@ -8,9 +8,11 @@
 #include <iostream>
 #include <iterator>
 #include <map>
+#include <numeric>
 #include <optional>
 #include <ranges>
 #include <set>
+#include <stdexcept>
 
 using namespace aoc::util;
 
@@ -24,20 +26,20 @@ bool isIntegral(std::complex<double> c) {
 }
 
 struct Claw {
-  void setA(double x, double y) { A = {x, y}; }
-  void setB(double x, double y) { B = {x, y}; }
-  void setPrize(double x, double y) { P = {x, y}; }
+  void setA(std::pair<double,double> x    ) { A = {x.first, x.second}; }
+  void setB(std::pair<double,double> x    ) { B = {x.first, x.second}; }
+  void setPrize(std::pair<double,double> x) { P = {x.first, x.second}; }
 
-
-  std::complex<double> winPrice(double offset = 0) {
+  std::complex<double> pressesRequired(double offset = 0) const
+  {
     auto Prize = P + std::complex<double>{offset, offset};
-     double bPress = (A.real() * Prize.imag() - A.imag() * Prize.real()) /
-                         (A.real() * B.imag() - A.imag() * B.real());
+    double bPress = (A.real() * Prize.imag() - A.imag() * Prize.real()) /
+                    (A.real() * B.imag() - A.imag() * B.real());
     double aPress = (Prize.real() - bPress * B.real()) / A.real();
     if (isIntegral(aPress) && isIntegral(bPress))
       return {aPress, bPress};
     else
-      return {0,0};
+      return {0, 0};
   }
 
   friend std::ostream &operator<<(std::ostream &os, const Claw &c) {
@@ -66,26 +68,26 @@ int valAfter(std::string_view str, std::string_view after) {
 }
 
 std::vector<Claw> readClaws(std::ifstream &input) {
+  auto parseCoordinates = [](std::string_view line,
+                             const std::string &prefix) -> std::pair<int, int> {
+    int x = valAfter(line, "X" + std::string{prefix});
+    int y = valAfter(line, "Y" + std::string{prefix});
+    return {x, y};
+  };
+
   std::vector<Claw> claws;
   Claw currentClaw;
-  foreach_line(input, [&claws, &currentClaw](std::string_view line) {
+  foreach_line(input, [&](std::string_view line) {
     if (line.starts_with("Button A")) {
-      int x = valAfter(line, "X+");
-      int y = valAfter(line, "Y+");
-      currentClaw.setA(x, y);
-      return;
+      currentClaw.setA(parseCoordinates(line, "+"));
+    } else if (line.starts_with("Button B")) {
+      currentClaw.setB(parseCoordinates(line, "+"));
+    } else if (line.starts_with("Prize")) {
+      currentClaw.setPrize(parseCoordinates(line, "="));
+      claws.push_back(currentClaw);
+    } else {
+      throw std::runtime_error("Unexpected line");
     }
-    if (line.starts_with("Button B")) {
-      int x = valAfter(line, "X+");
-      int y = valAfter(line, "Y+");
-      currentClaw.setB(x, y);
-      return;
-    }
-    assert(line.starts_with("Prize"));
-    int x = valAfter(line, "X=");
-    int y = valAfter(line, "Y=");
-    currentClaw.setPrize(x, y);
-    claws.push_back(currentClaw);
   });
   return claws;
 }
@@ -93,22 +95,19 @@ std::vector<Claw> readClaws(std::ifstream &input) {
 std::pair<std::uint64_t, std::uint64_t> process(std::ifstream &&input) {
   assert(input.is_open());
 
-  std::pair<std::uint64_t, std::uint64_t> ret{};
+  auto totalPrice = [](const auto &claw, std::uint64_t offset = 0) {
+    auto presses = claw.pressesRequired(offset);
+    return std::uint64_t(presses.real()) * 3 + std::uint64_t(presses.imag());
+  };
 
+  const uint64_t offset = 10000000000000;
   auto claws = readClaws(input);
-
-  for(auto& claw : claws)
-  {
-    auto presses = claw.winPrice();
-    ret.first += uint64_t(presses.real()) * 3 + uint64_t(presses.imag());
-  }
-
-  std::uint64_t offset = 10000000000000;
-  for(auto& claw : claws)
-  {
-    auto presses = claw.winPrice(offset);
-    ret.second += uint64_t(presses.real()) * 3 + uint64_t(presses.imag());
-  }
-
-  return ret;
+  return {std::accumulate(claws.begin(), claws.end(), 0ull,
+                          [&](std::uint64_t acc, const auto &claw) {
+                            return acc + totalPrice(claw);
+                          }),
+          std::accumulate(claws.begin(), claws.end(), 0ull,
+                          [&](std::uint64_t acc, const auto &claw) {
+                            return acc + totalPrice(claw, offset);
+                          })};
 }
