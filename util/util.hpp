@@ -45,7 +45,7 @@ inline int foreach_line(std::ifstream& stream, CB&& callback)
   int count = 0;
   while(std::getline(stream, line)) {
     auto payload = trimmed(line);
-    if(payload.empty()) break;
+    if(payload.empty()) continue;
     count++;
     callback(payload);
   }

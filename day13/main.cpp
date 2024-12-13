@@ -11,70 +11,52 @@
 #include <optional>
 #include <ranges>
 #include <set>
-#include <ranges>
 
 using namespace aoc::util;
 
 bool isIntegral(double value) {
-  uint64_t v = value;
-  return v == value;
-    // double intPart;
-    // return std::modf(value, &intPart) != 0.0;
+  double intPart;
+  return std::modf(value, &intPart) == 0.0;
 }
 
 bool isIntegral(std::complex<double> c) {
   return isIntegral(c.real()) && isIntegral(c.imag());
 }
 
-struct Claw
-{
-  explicit Claw(std::uint64_t aScale) : scale{aScale} {}
-  void setA(double x, double y)
-  {
-    A = { x, y};
-  }
+struct Claw {
+  void setA(double x, double y) { A = {x, y}; }
+  void setB(double x, double y) { B = {x, y}; }
+  void setPrize(double x, double y) { P = {x, y}; }
 
-  void setB(double x, double y)
-  {
-    B = { x, y};
-  }
 
-  void setPrize(double x, double y)
-  {
-    P = { x*scale, y*scale};
-  }
-
-  void reset() { A = B = P = {}; }
-  std::optional<std::complex<double>>solve()
-  {
-    double bPress = (A.real()*P.imag() - A.imag()*P.real()) / (A.real()*B.imag() - A.imag()*B.real());
-    double aPress = (P.real() - bPress*B.real()) / A.real();
+  std::complex<double> winPrice(double offset = 0) {
+    auto Prize = P + std::complex<double>{offset, offset};
+     double bPress = (A.real() * Prize.imag() - A.imag() * Prize.real()) /
+                         (A.real() * B.imag() - A.imag() * B.real());
+    double aPress = (Prize.real() - bPress * B.real()) / A.real();
     if (isIntegral(aPress) && isIntegral(bPress))
-      return {{aPress, bPress}};
+      return {aPress, bPress};
     else
-      return std::nullopt;
+      return {0,0};
   }
 
-    friend std::ostream &operator<<(std::ostream &os, const Claw &c) {
-      return os << "(A" << c.A << ", B" << c.B << ", P" << c.P << ")";
-    }
-  private:
-    std::complex<double> A{};
-    std::complex<double> B{};
-    std::complex<double> P{};
-    std::uint64_t scale;
+  friend std::ostream &operator<<(std::ostream &os, const Claw &c) {
+    return os << "(A" << c.A << ", B" << c.B << ", P" << c.P << ")";
+  }
 
+private:
+  std::complex<double> A{};
+  std::complex<double> B{};
+  std::complex<double> P{};
 };
 
-int valAfter(std::string_view str, std::string_view after)
-{
+int valAfter(std::string_view str, std::string_view after) {
   size_t startpos = str.find(after);
   assert(startpos != std::string_view::npos);
   startpos += after.length();
 
-  auto num =  str.substr(startpos);
-
   int ret;
+  auto num = str.substr(startpos);
   auto [ptr, ec] = std::from_chars(num.data(), num.data() + num.size(), ret);
   if (ec != std::errc()) {
     throw std::runtime_error("Conversion failed for token: " +
@@ -83,57 +65,50 @@ int valAfter(std::string_view str, std::string_view after)
   return ret;
 }
 
-std::pair<std::uint64_t, std::uint64_t> process(std::ifstream&& input)
-{
-  assert(input.is_open());
+std::vector<Claw> readClaws(std::ifstream &input) {
+  std::vector<Claw> claws;
+  Claw currentClaw;
+  foreach_line(input, [&claws, &currentClaw](std::string_view line) {
+    if (line.starts_with("Button A")) {
+      int x = valAfter(line, "X+");
+      int y = valAfter(line, "Y+");
+      currentClaw.setA(x, y);
+      return;
+    }
+    if (line.starts_with("Button B")) {
+      int x = valAfter(line, "X+");
+      int y = valAfter(line, "Y+");
+      currentClaw.setB(x, y);
+      return;
+    }
+    assert(line.starts_with("Prize"));
+    int x = valAfter(line, "X=");
+    int y = valAfter(line, "Y=");
+    currentClaw.setPrize(x, y);
+    claws.push_back(currentClaw);
+  });
+  return claws;
+}
 
-  std::uint64_t scale = 10000000000000;
+std::pair<std::uint64_t, std::uint64_t> process(std::ifstream &&input) {
+  assert(input.is_open());
 
   std::pair<std::uint64_t, std::uint64_t> ret{};
 
-  Claw claw1{1};
-  Claw claw2{scale};
+  auto claws = readClaws(input);
 
-  foreach_line(input, [&](std::string_view line)
+  for(auto& claw : claws)
   {
-    if( line.starts_with("Button A")){
-      int x = valAfter(line, "X+");
-      int y = valAfter(line, "Y+");
-      claw1.setA(x,y);
-      claw2.setA(x,y);
-      return;
-    }
-    if( line.starts_with("Button B")){
-      int x = valAfter(line, "X+");
-      int y = valAfter(line, "Y+");
-      claw1.setB(x,y);
-      claw2.setB(x,y);
-      return;
-    }
-    assert (line.starts_with("Prize"));
-    int x = valAfter(line, "X=");
-    int y = valAfter(line, "Y=");
-    claw1.setPrize(x,y);
-    claw2.setPrize(x,y);
+    auto presses = claw.winPrice();
+    ret.first += uint64_t(presses.real()) * 3 + uint64_t(presses.imag());
+  }
 
-    if (1) {
-      if (auto presses = claw1.solve(); presses.has_value()) {
-        std::cout << claw1 << " == " << *presses << "\tYES\n";
-        ret.first += int(presses->real()) * 3 + int(presses->imag());
-      } else
-        std::cout << "nope\n";
-    }
+  std::uint64_t offset = 10000000000000;
+  for(auto& claw : claws)
+  {
+    auto presses = claw.winPrice(offset);
+    ret.second += uint64_t(presses.real()) * 3 + uint64_t(presses.imag());
+  }
 
-    if(1){
-      if (auto presses = claw2.solve(); presses.has_value()) {
-        std::cout << claw2 << " == " << *presses << "\tYES\n";
-        ret.second += int(presses->real()) * 3 + int(presses->imag());
-      } else
-        std::cout << "nope\n";
-    }
-
-    claw1.reset();
-    claw2.reset();
-  });
   return ret;
 }
