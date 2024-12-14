@@ -43,6 +43,18 @@ public:
     static constexpr offset SouthEast = {1, 1};
     static constexpr offset SouthWest = {-1, 1};
 
+    static constexpr std::array<Grid::offset, 4> directions4 = {
+        Grid::North, Grid::South, Grid::East, Grid::West};
+    static constexpr std::array<Grid::offset, 8> directions8 = {
+        Grid::North,     Grid::South,     Grid::East,      Grid::West,
+        Grid::NorthEast, Grid::NorthWest, Grid::SouthEast, Grid::SouthWest};
+
+    Grid(size_t width, size_t height, char c) : width{width}, height{height} {
+      for (int y = 0; y < height; y++) {
+        gridData.emplace_back(width, c);
+      }
+  }
+
   Grid(std::vector<std::string> &&data)
       : gridData(std::move(data)), width(gridData[0].size()),
         height(gridData.size()) {}
