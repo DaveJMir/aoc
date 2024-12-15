@@ -100,40 +100,50 @@ int position2quadrant(Coord pos, Coord size) {
   return 4;
 }
 
-int countRowsFrom(Grid::Iterator iter, int width) {
-  auto tmp = iter;
-  for (int i = 0; i < width; i++, ++tmp) {
-    if (*tmp != '#')
-      return 0;
+uint64_t flood_region(Grid::Iterator it, std::set<Grid::coord>& seen)
+{
+  if(*it != '#') return 0;
+  if(seen.contains(it.coords())) return 0;
+  seen.insert(it.coords());
+
+  uint64_t count = 1;
+  for(auto d : Grid::directions4)
+  {
+    count += flood_region(it+d, seen);
   }
-  return 1 + countRowsFrom(iter + Grid::SouthWest, width + 2);
+  return count;
 }
 
-int triangleHeightAt(Grid::Iterator iter) {
-  if (*iter != '#')
-    return 0;
-  return countRowsFrom(iter + Grid::SouthWest, 3);
+uint64_t biggestRegion(Grid &map) {
+  uint64_t max = 0;
+  std::set<Grid::coord> visited{};
+  for (auto it = map.begin(); it != map.end(); ++it) {
+    if (auto blob = flood_region(it, visited); blob > max)
+      max = blob;
+  }
+  return max;
 }
 
 int whenLookLikeTree(std::vector<Robot> robots, Coord size) {
-  for (int i = 0; i < 100000000; i++) {
-    auto map = Grid(size.x, size.y, '.');
-    for (auto &r : robots) {
+
+  uint64_t biggestBlob = 0;
+  int biggestWhen = 0;
+  for (int i = 0; i < size.x * size.y; i++) {
+    auto map =
+        Grid{static_cast<size_t>(size.x), static_cast<size_t>(size.y), '.'};
+    for(auto& r : robots)
+    {
       map.at(r.pos.x, r.pos.y) = '#';
-    }
-
-    for (auto iter = map.begin(); iter != map.end(); ++iter) {
-      int height = triangleHeightAt(iter);
-      if (height >= 4) {
-        return i;
-      }
-    }
-
-    for (auto &r : robots) {
       r.step(size);
     }
+
+    if (auto s = biggestRegion(map); s > biggestBlob)
+    {
+      biggestBlob = s;
+      biggestWhen = i;
+    }
   }
-  return 0;
+  return biggestWhen;
 }
 
 std::pair<std::uint64_t, std::uint64_t> process(std::ifstream &&input) {
