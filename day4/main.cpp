@@ -56,7 +56,7 @@ std::pair<std::uint64_t, std::uint64_t> process(std::ifstream&& input)
 {
   int total_xmas{0};
   int total_x_mas{0};
-  Grid grid{std::move(input)};
+  Grid grid{input};
   for(auto it = grid.begin(); it != grid.end(); ++it)
   {
     total_xmas += find_xmas(it);

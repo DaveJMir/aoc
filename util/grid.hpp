@@ -12,7 +12,7 @@
 namespace aoc::util
 {
 
-inline std::vector<std::string> gridFromFile(std::ifstream &&input) {
+inline std::vector<std::string> gridFromFile(std::ifstream &input) {
   std::vector<std::string> gridStrings{};
   int width = 0;
 
@@ -22,7 +22,7 @@ inline std::vector<std::string> gridFromFile(std::ifstream &&input) {
     }
     width = line.size();
     gridStrings.push_back(std::string{line});
-  });
+  }, OnEmptyLine::Halt);
   return gridStrings;
 }
 
@@ -59,8 +59,8 @@ public:
       : gridData(std::move(data)), width(gridData[0].size()),
         height(gridData.size()) {}
 
-  Grid(std::ifstream &&instream)
-      : gridData(gridFromFile(std::move(instream))), width(gridData[0].size()),
+  Grid(std::ifstream &instream)
+      : gridData(gridFromFile(instream)), width(gridData[0].size()),
         height(gridData.size()) {}
 
   const size_t width;

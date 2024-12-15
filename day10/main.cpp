@@ -43,7 +43,7 @@ std::pair<int,int> countTrails(Grid::Iterator cell)
 std::pair<std::uint64_t, std::uint64_t> process(std::ifstream&& input)
 {
   assert(input.is_open());
-  Grid map{std::move(input)};
+  Grid map{input};
 
   std::pair<std::uint64_t, std::uint64_t> ret{};
   for( auto cell = map.begin(); cell != map.end(); ++cell)

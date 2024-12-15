@@ -59,8 +59,8 @@ class Map
   public:
     using Pos = Grid::Iterator;
 
-    explicit Map(std::ifstream input)
-        : map{std::move(input)}, guard{map.find('^')}, initialGuard{guard},
+    explicit Map(std::ifstream& input)
+        : map{input}, guard{map.find('^')}, initialGuard{guard},
           facing{Facing::UP} {
     assert(guard != map.end());
     }
@@ -175,5 +175,5 @@ std::pair<uint64_t,uint64_t> run(Map map)
 
 std::pair<std::uint64_t, std::uint64_t> process(std::ifstream&& input)
 {
-  return run(Map{std::move(input)});
+  return run(Map{input});
 }

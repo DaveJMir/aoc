@@ -38,19 +38,28 @@ inline std::vector<T> string2vec(std::string_view s, char c = ' ')
     return result;
 }
 
-template<typename CB>
-inline int foreach_line(std::ifstream& stream, CB&& callback)
-{
-  std::string line;
-  int count = 0;
-  while(std::getline(stream, line)) {
-    auto payload = trimmed(line);
-    if(payload.empty()) continue;
-    count++;
-    callback(payload);
-  }
-  return count;
+enum class OnEmptyLine{
+    Ignore = 0,
+    PassThrough,
+    Halt,
+};
 
+template <typename CB>
+inline int foreach_line(std::ifstream &stream, CB &&callback,
+                        OnEmptyLine onEmpty = OnEmptyLine::Ignore) {
+    std::string line;
+    int count = 0;
+    while (std::getline(stream, line)) {
+        auto payload = trimmed(line);
+        if (payload.empty())
+        {
+            if(onEmpty == OnEmptyLine::Halt) return count;
+            if(onEmpty == OnEmptyLine::Ignore) continue;
+        }
+        count++;
+        callback(payload);
+    }
+    return count;
 }
 
 inline std::vector<std::string> splitExampleByParts(std::ifstream& input) {

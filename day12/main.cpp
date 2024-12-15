@@ -52,7 +52,7 @@ bool isRight(Grid::Iterator it) { return *it != *(it+Grid::East);}
 std::pair<std::uint64_t, std::uint64_t> process(std::ifstream &&input) {
   assert(input.is_open());
 
-  auto garden = Grid{std::move(input)};
+  auto garden = Grid{input};
 
   RegionId nextRegion = 1;
   std::pair<std::uint64_t, std::uint64_t> ret{};

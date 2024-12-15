@@ -87,5 +87,5 @@ std::pair<uint64_t, uint64_t> process(Grid &&grid) {
 
 std::pair<std::uint64_t, std::uint64_t> process(std::ifstream&& input)
 {
-  return process(Grid{std::move(input)});
+  return process(Grid{input});
 }
