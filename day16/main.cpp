@@ -18,6 +18,14 @@
 
 using namespace aoc::util;
 
+template<typename T>
+std::set<T> append(const std::set<T>& orig, const T& next)
+{
+  std::set<T> ret{orig};
+  ret.insert(next);
+  return ret;
+}
+
 static inline Grid::coord TurnLeft(Grid::coord c)
 {
   if(c == Grid::East) return Grid::North;
@@ -53,6 +61,7 @@ struct Dijkstra
     Grid::coord position;
     Grid::coord direction;
     uint64_t cost;
+    std::set<Grid::coord> seenPath;
     bool operator<(const Node &other) const {
       if (cost != other.cost) {
         return cost < other.cost; // Primary criterion
@@ -84,21 +93,24 @@ struct Dijkstra
     return ret;
   }
 
-  void pushNode(Grid::coord pos, Grid::coord dir, uint64_t cost)
+  void pushNode(Grid::coord pos, Grid::coord dir, uint64_t cost, std::set<Grid::coord>&& path)
   {
-    Node newNode{pos, dir, cost};
+    Node newNode{pos, dir, cost, std::move(path)};
     if(hasSeen(newNode)) return;
 
     auto it = std::find_if(
         frontier.begin(), frontier.end(), [&newNode](const Node &n) {
           return (n.position == newNode.position) && (n.direction == newNode.direction);
         });
-    if (it != frontier.end() && it->cost <= cost) {
-      // A cheaper or equal path already exists; skip this node
+    if (it != frontier.end() && it->cost < cost) {
+      // A cheaper path already exists; skip this node
       return;
     }
 
     if (it != frontier.end()) {
+      if (it->cost == cost){ // equal cost: one inherits the path of the other
+        newNode.seenPath.insert(it->seenPath.begin(), it->seenPath.end());
+      }
       frontier.erase(it); // Remove the higher-cost node
     }
 
@@ -106,31 +118,52 @@ struct Dijkstra
     return;
   }
 
-  void printMap(Grid::coord pos, Grid grid) const {
-    return;
+  void printMap(const Node& node, Grid grid) const {
     for (auto &n : frontier)
       grid.at(n.position.first, n.position.second) = '?';
-    grid.at(pos.first, pos.second) = '@';
+    for( const auto& [x,y] : node.seenPath)
+      grid.at(x, y) = 'O';
+    grid.at(node.position.first, node.position.second) = '@';
+    std::cout << grid << "\n";
   }
 };
 
-uint64_t dijkstra(Grid& map, Grid::Iterator pos, Grid::coord dir)
+uint64_t dijkstra(Grid& map, Grid::Iterator pos, Grid::coord dir, std::set<Grid::coord>& vantages)
 {
   Dijkstra state{};
   auto goal = map.find('E').coords();
 
-  state.pushNode(pos.coords(), dir, 0);
+  state.pushNode(pos.coords(), dir, 0, {});
+  std::optional<uint64_t> minimumCost = {};
 
   while(!state.frontier.empty())
   {
     auto current = state.popNode();
-    if(current.position == goal) return current.cost;
+    // If we've found a shortest route, and the current step is longer, then we
+    // must have visited ALL the shortest paths already
+    if (minimumCost.has_value() && current.cost > minimumCost)
+    {
+      break;
+    }
+
+    if(current.position == goal)
+    {
+      vantages.insert(current.seenPath.begin(), current.seenPath.end());
+      if(minimumCost.has_value())
+      {
+        assert(*minimumCost == current.cost);
+      } else {
+        minimumCost = current.cost;
+      }
+      continue;
+    }
 
     auto it = map.iterAt(current.position);
     auto tryPush = [&](const Grid::coord &offset, uint64_t costIncrement) {
       auto nextIt = it + offset;
       if (*nextIt != '#') {
-        state.pushNode(nextIt.coords(), offset, current.cost + costIncrement);
+        state.pushNode(nextIt.coords(), offset, current.cost + costIncrement,
+                       append(current.seenPath, nextIt.coords()));
       }
     };
 
@@ -140,9 +173,8 @@ uint64_t dijkstra(Grid& map, Grid::Iterator pos, Grid::coord dir)
     tryPush(leftDir, 1001);
     tryPush(rightDir, 1001);
   }
-  throw std::runtime_error("No path found");
+  return minimumCost.value();
 }
-
 
 std::pair<std::uint64_t, std::uint64_t> process(std::ifstream&& input)
 {
@@ -150,9 +182,8 @@ std::pair<std::uint64_t, std::uint64_t> process(std::ifstream&& input)
   Grid map{input};
 
   auto start = map.find('S');
-  auto end = map.find('E');
-  std::cout << "FROM: " << start << "TO " << end << "\n";
-
-  return {// shortestPath(start, end, map),
-          dijkstra(map, start, Grid::East), 0};
+  std::set<Grid::coord> vantages{};
+  vantages.insert(start.coords());
+  auto shortestPath = dijkstra(map, start, Grid::East, vantages);
+  return {shortestPath, vantages.size()};
 }
