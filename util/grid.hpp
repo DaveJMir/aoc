@@ -134,6 +134,7 @@ public:
   };
 
   Iterator begin() { return Iterator(0, 0, this); }
+  Iterator last() { return Iterator(width - 1, height - 1, this); }
   Iterator end() { return Iterator(-1, -1, this); }
 
   char& operator[](Iterator &it) {

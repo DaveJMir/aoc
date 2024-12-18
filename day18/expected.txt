@@ -1,0 +1,8 @@
+Example Part1: 22
+Example Part2: 6001
+
+Part1: 280
+Part2: 28056
+
+
+#6001 means x=6, y=1
