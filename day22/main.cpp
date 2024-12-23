@@ -8,35 +8,100 @@
 #include <iterator>
 #include <map>
 #include <numeric>
+#include <ostream>
 #include <ranges>
 #include <set>
+#include <ranges>
+#include <iostream>
+#include <vector>
 #include <ranges>
 
 using namespace aoc::util;
 
+struct WinFour
+{
+  int a{0}, b{0}, c{0}, d{0};
+  int push(int x)
+  {
+    int r = a;
+    a = b;
+    b = c;
+    c = d;
+    d = x;
+    return r;
+  }
+
+  friend std::ostream& operator<<(std::ostream& os, const WinFour& w)
+  {
+    return std::cout << "W4{"<<w.a<<","<<w.b<<","<<w.c<<","<<w.d<<"}";
+  }
+
+  bool operator<(const WinFour &other) const {
+    if (a != other.a)
+      return a < other.a;
+    if (b != other.b)
+      return b < other.b;
+    if (c != other.c)
+      return c < other.c;
+    return d < other.d;
+  }
+};
+
 class Monkey {
 public:
-  Monkey(uint64_t initial) : secret{initial} {
+  Monkey(uint64_t initial) : initial{initial} {
     assert(mix(42, 15) == 37);
     assert(prune(100000000) == 16113920);
   }
 
   uint64_t step(int n) {
-    for(int i=0; i<n; i++)step();
+    auto secret = initial;
+    for(int i=0; i<n; i++)
+      secret = step(secret);
     return secret;
   }
 
+  friend std::ostream& operator<<(std::ostream& os, const Monkey& m)
+  {
+    return os << "M{" << m.initial << "}";
+  }
+
+  void generate(int n) {
+    auto lastSecret = initial;
+    auto lastDigit = initial % 10;
+    WinFour w4{};
+
+
+    for(int i=0; i<n; i++)
+    {
+      auto secret = step(lastSecret);
+      auto digit = secret % 10;
+
+      int difference = digit - lastDigit;
+      w4.push(difference);
+      if(i>=3) {
+        prices.emplace(w4, digit);
+      }
+
+      lastDigit = digit;
+      lastSecret = secret;
+    }
+  }
+
+  const std::map<WinFour, int>& getPrices() const { return prices; };
+
 private:
-  uint64_t secret;
+  const uint64_t initial;
+  std::map<WinFour, int> prices{};
 
   static inline uint64_t mix(uint64_t a, uint64_t b) { return a ^ b; }
   static inline uint64_t prune(uint64_t a) { return a % 16777216; }
 
-  uint64_t step() {
-    uint64_t a = prune(mix(secret * 64, secret));
+  uint64_t step(uint64_t v) {
+    uint64_t a = prune(mix(v * 64, v));
     a = prune(mix(a / 32, a));
-    secret = prune(mix(a * 2048, a));
-    return secret;
+    a = prune(mix(a * 2048, a));
+    return a;
   }
 };
 
@@ -57,10 +122,35 @@ process(std::ifstream &&input) {
     monkeys.emplace_back(val);
   });
 
-  uint64_t total = std::accumulate(monkeys.begin(), monkeys.end(), uint64_t{0}, [](uint64_t v, Monkey& m)
+  uint64_t part1 = std::accumulate(monkeys.begin(), monkeys.end(), uint64_t{0}, [](uint64_t v, Monkey& m)
   {
     auto n = m.step(2000);
     return n + v;
   });
-  return {total, 0};
+
+  for(auto& m : monkeys) m.generate(2000);
+
+
+  int64_t max = 0;
+  double numRuns = monkeys.size();
+  int run = 0;
+  for (const auto &m1 : monkeys) {
+    run++;
+    std::cout << m1 << " is. " << run << "/" << numRuns << "\n";
+
+    for (const auto &[key, p] : m1.getPrices()) {
+      int64_t total = 0;
+      for (const auto &m2 : monkeys) {
+        if (m2.getPrices().contains(key)) {
+          auto val = m2.getPrices().at(key);
+          total += val;
+        }
+      }
+      if (total > max) {
+        max = total;
+      }
+    }
+  }
+
+  return {part1, max};
 }
