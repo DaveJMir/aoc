@@ -45,13 +45,21 @@ Grid populateMap(std::vector<Grid::coord>& points)
   return ret;
 }
 
+using Seen = std::set<Grid::coord>;
 
+Seen append(const Seen& s, Grid::coord c)
+{
+  Seen ret = s;
+  ret.insert(c);
+  return ret;
+}
 struct Dijkstra
 {
   struct Node
   {
     Grid::coord position;
     uint64_t cost;
+    Seen path;
     bool operator<(const Node &other) const {
       if (cost != other.cost) {
         return cost < other.cost; // Primary criterion
@@ -80,9 +88,9 @@ struct Dijkstra
     return ret;
   }
 
-  void pushNode(Grid::coord pos, uint64_t cost)
+  void pushNode(Grid::coord pos, uint64_t cost, Seen&& seen)
   {
-    Node newNode{pos, cost};
+    Node newNode{pos, cost, std::move(seen)};
     if(hasSeen(newNode)) return;
 
     auto it = std::find_if(
@@ -112,25 +120,26 @@ struct Dijkstra
   }
 };
 
-std::optional<uint64_t> dijkstra(Grid& map, Grid::Iterator begin, Grid::Iterator goal)
+std::optional<uint64_t> dijkstra(Grid& map, Grid::Iterator begin, Grid::Iterator goal, Seen& visited)
 {
   Dijkstra state{};
 
-  state.pushNode(begin.coords(), 0);
+  state.pushNode(begin.coords(), 0, {begin.coords()});
 
   while(!state.frontier.empty())
   {
     auto current = state.popNode();
     if(current.position == goal.coords())
     {
-     return current.cost;
+      std::swap(current.path, visited);
+      return current.cost;
     }
 
     auto it = map.iterAt(current.position);
     auto tryPush = [&](const Grid::coord &offset, uint64_t costIncrement) {
       auto nextIt = it + offset;
       if (*nextIt == '.') {
-        state.pushNode(nextIt.coords(), current.cost + 1);
+        state.pushNode(nextIt.coords(), current.cost + 1, append(current.path, current.position));
       }
     };
 
@@ -143,23 +152,30 @@ std::optional<uint64_t> dijkstra(Grid& map, Grid::Iterator begin, Grid::Iterator
   return std::nullopt;
 }
 
-uint64_t maxFalls(Grid& map, Grid::Iterator begin, Grid::Iterator goal, const std::vector<Grid::coord> falling)
-{
-  int upto =0;
-  for( auto c : falling)
-  {
-    if (upto++ % 10 == 0)
-     std::cout << "Byte: " << upto-1 << "/" << falling.size() << "\n";
-    if(upto < 1024) continue;
-    map.at(c.first, c.second) = '#';
-    if( !dijkstra(map, begin, goal).has_value())
-    {
-      return c.first * 1000 + c.second;
+uint64_t maxFalls(Grid &map, Grid::Iterator begin, Grid::Iterator goal,
+                  const std::vector<Grid::coord> falling) {
+  int upto = 0;
+  for (const auto &[x, y] : falling | std::ranges::views::take(upto)) {
+    map.at(x, y) = '#';
+  }
+  Seen seen{};
+  dijkstra(map, begin, goal, seen);
+  std::cout << "Original walk: " << seen.size() << "\n";
+
+  for (const auto &[x, y] : falling | std::ranges::views::drop(upto)) {
+    map.at(x, y) = '#';
+    upto++;
+
+    if (seen.contains({x, y})) {
+      std::cout << "Broke path oh: " << upto << "\n";
+      seen.clear();
+      if (!dijkstra(map, begin, goal, seen).has_value()) {
+        return x * 1000 + y;
+      }
     }
   }
   return 0;
 }
-
 
 std::pair<std::uint64_t, std::uint64_t> process(std::ifstream&& input)
 {
@@ -170,7 +186,8 @@ std::pair<std::uint64_t, std::uint64_t> process(std::ifstream&& input)
   auto start = map.begin();
   auto goal = map.last();
 
-  auto min = dijkstra(map, start, goal).value();
+  Seen seen{};
+  auto min = dijkstra(map, start, goal, seen).value();
   auto firstFail =  maxFalls(map, start, goal, points);
 
   return { min, firstFail };
