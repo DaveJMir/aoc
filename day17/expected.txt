@@ -2,7 +2,7 @@ Example Part1: 153
 Example Part2: 0
 
 Part1: 172
-Part2: 0
+Part2: 216549846240877
 
 
 # Distill the list to an int by multiplying each value by its 1-index,

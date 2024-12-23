@@ -4,9 +4,11 @@
 #include <cassert>
 #include <expected>
 #include <fstream>
+#include <ios>
 #include <iostream>
 #include <iterator>
 #include <map>
+#include <optional>
 #include <ostream>
 #include <ranges>
 #include <set>
@@ -66,6 +68,8 @@ struct Computer
     std::vector<int64_t> outputs;
     std::vector<int> program;
     bool halted = false;
+    int outcount = 0;
+    uint64_t csum = 0;
 
     friend std::ostream& operator<<(std::ostream& os, const Computer& pc)
     {
@@ -105,76 +109,161 @@ struct Computer
       return INST{program.at(PC)};
     }
 
-    void run()
+    inline void ADV(uint64_t v)
     {
-      while(!halted)
-      {
-        std::cout << *this << "\n";
+      A = A >> v;
+      PC += 2;
+    }
+
+    inline void BDV(uint64_t v)
+    {
+      B = A >> v;
+      PC += 2;
+    }
+
+    inline void CDV(uint64_t v)
+    {
+      C = A >> v;
+      PC += 2;
+    }
+
+    inline void BXL(uint64_t v) {
+      B = B ^ v;
+      PC += 2;
+    }
+
+    inline void BST(uint64_t v) {
+      B = v % 8;
+      PC += 2;
+    }
+
+    inline bool JNZ(uint64_t v)
+    {
+      if (A == 0){
+        PC += 2;
+        return false;
+      } else {
+        PC = v;
+        return true;
+      }
+    }
+
+    inline void BXC()
+    {
+      B = B ^ C;
+      PC += 2;
+    }
+
+    inline void OUT(uint64_t v) {
+      v &= 0b111;
+      outputs.push_back(v % 8);
+      outcount++;
+      csum += v*outcount;
+      PC += 2;
+    }
+
+    void run() {
+      while (!halted) {
         auto inst = OPCODE();
-        switch(inst)
-        {
-          case INST::ADV:
-          std::cout << "ADV\n";
-            A = A / pow(2,COMBO());
-            PC += 2;
-            break;
+        switch (inst) {
+        case INST::ADV:
+          ADV(COMBO());
+          break;
 
-          case INST::BXL:
-          std::cout << "BXL\n";
-            B = B ^ OPERAND();
-            PC += 2;
-            break;
+        case INST::BXL:
+          BXL(OPERAND());
+          break;
 
-          case INST::BST:
-          std::cout << "BST: B=" << COMBO() << "&7\n";
-            B = COMBO() % 8;
-            PC += 2;
-            break;
+        case INST::BST:
+          BST(COMBO());
+          break;
 
-          case INST::JNZ:
-          std::cout << "JNZ\n";
-            if (A == 0) PC+=2;
-            else PC = OPERAND();
-            break;
+        case INST::JNZ:
+          JNZ(OPERAND());
+          break;
 
-          case INST::BXC:
-          std::cout << "BXC\n";
-            B = B^C;
-            PC += 2;
-            break;
+        case INST::BXC:
+          BXC();
+          break;
 
-          case INST::OUT:
-          std::cout << "OUT\n";
-            outputs.push_back( COMBO() % 8);
-            PC += 2;
-            break;
+        case INST::OUT:
+          OUT(COMBO());
+          break;
 
-          case INST::BDV:
-          std::cout << "BDV\n";
-            B = A / pow(2,COMBO());
-            PC += 2;
-            break;
+        case INST::BDV:
+          BDV(COMBO());
+          break;
 
-          case INST::CDV:
-          std::cout << "CDV\n";
-            C = A / pow(2,COMBO());
-            PC += 2;
-            break;
+        case INST::CDV:
+          CDV(COMBO());
+          break;
 
-          case INST::HALT:
-            halted = true;
-            return;
+        case INST::HALT:
+          halted = true;
+          return;
         }
       }
     }
 
     uint64_t checksum() const {
-      int pos = 1;
-      uint64_t sum =0;
-      for(auto v : outputs) sum += v*pos++;
-      return sum;
+      return csum;
+    }
+
+
+    void triple(int64_t A)
+    {
+      while(A)
+      {
+        A >>= 3;
+      }
+    }
+
+    // This is my program. Maybe faster?
+    bool step(int64_t &A) {
+      triple(A);
+      int64_t B = (A & 7) ^ 3;
+      B = (B ^ 5) ^ (A >> B);
+      OUT(B & 7);
+      this->B = B&7;
+      A = A >> 3;
+      return (A != 0);
+    }
+
+    auto hardcoded() {
+      std::vector<int> ret{};
+
+      for (;;) {
+        bool again = step(A);
+        ret.push_back(B & 7);
+        if(!again) break;
+      }
+      return ret;
     }
 };
+
+std::optional<int64_t> findQuine(const Computer &baseline, int64_t a,
+                  std::span<const int> output) {
+  if (output.empty())
+        return a;
+  auto compare = baseline.program;
+  for (int i = 0; i < 8; i++) {
+        auto compy = baseline;
+        auto candidate = (a << 3) | i;
+        compy.A = candidate;
+        auto result = compy.hardcoded();
+        if(result[0] == output.back())
+        {
+          auto maybe = findQuine(baseline, candidate, output.subspan(0,output.size()-1));
+          if(maybe.has_value()) return maybe;
+        }
+  }
+  return std::nullopt;
+}
+
+int64_t findQuine(const Computer& baseline)
+{
+  return findQuine(baseline, 0, baseline.program).value();
+}
 
 Computer loadState(std::ifstream& input)
 {
@@ -222,7 +311,18 @@ std::pair<std::uint64_t, std::uint64_t> process(std::ifstream&& input)
 {
   assert(input.is_open());
   auto computer = loadState(input);
-  computer.run();
+  auto backup = computer;
 
-  return { computer.checksum(), 0};
+  if (computer.A == 729) // is example
+  {
+    // hardcoded executor and quinefinder doesnt run for example.
+    // just interpret and dont bother, respectively.
+    computer.run();
+    return { computer.checksum(), 0};
+  }
+
+  computer.hardcoded();
+  auto cs = computer.checksum();
+  auto qn = findQuine(computer);
+  return {cs, qn};
 }
