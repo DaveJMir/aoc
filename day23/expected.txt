@@ -1,5 +1,9 @@
 Example Part1: 7
-Example Part2: 0
+Example Part2: 16295267149349651959
 
 Part1: 1062
-Part2: 0
+Part2: 11575127561189765479
+
+
+# 16295267149349651959 = std::hash("co,de,ka,ta")
+# 11575127561189765479 = std::hash("bz,cs,fx,ms,oz,po,sy,uh,uv,vw,xu,zj,zm")

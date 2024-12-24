@@ -75,14 +75,50 @@ StringSetSet trioDfs(LanParty &lp, const std::string& node, StringSet seen, Stri
   return ret;
 }
 
-
 StringSetSet findTrios(LanParty& lp)
 {
   StringSetSet ret{};
   for(const auto& c : lp.nodes)
   {
-    auto items = dfs(lp, c.first,{}, {});
+    auto items = trioDfs(lp, c.first,{}, {});
     ret.insert(items.begin(), items.end());
+  }
+  return ret;
+}
+
+StringSet largestDfs(LanParty &lp, const std::string& node, StringSet& seen, StringSet items)
+{
+  if(seen.contains(node)) return {};
+
+  // if we're not connected to all our predecessors, not a clique
+  for(const auto& i : items)
+  {
+    if (i!=node && !lp.nodes[node].contains(i))
+      return {};
+  }
+
+  seen.insert(node);
+  items.insert(node);
+
+  const auto adjacent = lp.nodes.at(node);
+  StringSet ret = items;
+  for( const auto& a : adjacent)
+  {
+    auto next = largestDfs(lp, a, seen, items);
+    if (next.size() > ret.size())
+      std::swap(next, ret);
+  }
+  return ret;
+}
+
+StringSet findLargest(LanParty& lp)
+{
+  StringSet ret{};
+  StringSet seen{};
+  for(const auto& c : lp.nodes)
+  {
+    auto items = largestDfs(lp, c.first, seen, {});
+    if(items.size() > ret.size()) std::swap(items, ret);
   }
   return ret;
 }
@@ -94,5 +130,17 @@ std::pair<std::uint64_t, std::uint64_t> process(std::ifstream&& input)
   auto lp = load(input);
 
   auto trios = findTrios(lp);
-  return {trios.size(), 0};
+  auto largest = findLargest(lp);
+
+  std::string answer;
+  for(const auto& l : largest )
+  {
+    if(l!=*largest.begin())
+      answer += ",";
+    answer += l;
+  } 
+
+  auto stringHasher = std::hash<std::string>{};
+  assert(stringHasher("co,de,ka,ta") == 16295267149349651959ULL);
+  return {trios.size(), stringHasher(answer)};
 }
