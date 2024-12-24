@@ -98,10 +98,9 @@ private:
   static inline uint64_t prune(uint64_t a) { return a % 16777216; }
 
   uint64_t step(uint64_t v) {
-    uint64_t a = prune(mix(v * 64, v));
-    a = prune(mix(a / 32, a));
-    a = prune(mix(a * 2048, a));
-    return a;
+    const uint64_t a = prune(mix(v * 64, v));
+    const uint64_t b = prune(mix(a / 32, a));
+    return prune(mix(b * 2048, b));
   }
 };
 
@@ -128,28 +127,39 @@ process(std::ifstream &&input) {
     return n + v;
   });
 
-  for(auto& m : monkeys) m.generate(2000);
+  int numCommands = 0;
+  std::set<WinFour> commands{};
+  for(auto& m : monkeys)
+  {
+     m.generate(2000);
+     const auto& prices = m.getPrices();
+     numCommands += prices.size();
+
+     for (const auto &key : prices | std::views::keys) {
+      commands.insert(key);
+     }
+
+    //  commands.insert(prices.begin(), prices.end());
+  }
+  std::cout << "For " << monkeys.size() << ": Totalled " << numCommands << " but only " << commands.size() << " are unique\n";
 
 
   int64_t max = 0;
-  double numRuns = monkeys.size();
+  double numRuns = commands.size();
   int run = 0;
-  for (const auto &m1 : monkeys) {
-    run++;
-    std::cout << m1 << " is. " << run << "/" << numRuns << "\n";
-
-    for (const auto &[key, p] : m1.getPrices()) {
-      int64_t total = 0;
-      for (const auto &m2 : monkeys) {
-        if (m2.getPrices().contains(key)) {
-          auto val = m2.getPrices().at(key);
-          total += val;
-        }
+  for (const auto &key : commands) {
+     int64_t total = 0;
+     if (run++ % 1000 == 0)
+      std::cout << run-1 << "/" << numRuns << "\n";
+     for (const auto &m2 : monkeys) {
+      if (m2.getPrices().contains(key)) {
+        auto val = m2.getPrices().at(key);
+        total += val;
       }
-      if (total > max) {
-        max = total;
-      }
-    }
+     }
+     if (total > max) {
+      max = total;
+     }
   }
 
   return {part1, max};
