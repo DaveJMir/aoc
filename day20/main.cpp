@@ -16,9 +16,9 @@
 using namespace aoc::util;
 
 using Seen = std::set<Grid::coord>;
-using Cheats = std::set<int>;
 
-using Distances = std::vector<std::pair<Grid::coord, size_t>>;
+using Distance = std::pair<Grid::coord, size_t>;
+using Distances = std::vector<Distance>;
 
 void draw(Grid g, Distances& distances, Grid::Iterator at)
 {
@@ -72,27 +72,34 @@ auto contains(const Distances &d, Grid::coord c)
 {
   return std::find_if(
       d.begin(), d.end(),
-      [&c](const std::pair<Grid::coord, size_t> &p) { return p.first == c; });
+      [&c](const Distance& p) { return p.first == c; });
 }
 
-Shortcuts findShortcuts(Grid& map, const Distances& path)
+Shortcuts findShortcuts(Grid& map, const Distances& path, const Distances& constellation)
 {
   Shortcuts ret{};
+  auto total = path.size();
+  int upto = 0;
   for(auto loc : path)// [pos, count] : path)
   {
+    if (upto % 100 == 0)
+      std::cout << "UPTO: " << upto << " / " << total << "\n";
+    upto++;
     auto pos = loc.first;
     auto count= loc.second;
     auto it = map.iterAt(pos);
-    for(auto& d : Grid::directions4)
+    for(auto& d : constellation)
     {
-      auto candidate = it + d + d;
+      auto offset = d.first;
+      auto cost = d.second;
+      auto candidate = it + offset;
       auto history = contains(path, candidate.coords());
       if(history != path.end())
       {
         auto newCost = history->second;
-        if(newCost > count + 2)
+        if(newCost > count + cost)
         {
-          ret[newCost - (count + 2)]++;
+          ret[newCost - (count + cost)]++;
         }
       }
 
@@ -101,19 +108,58 @@ Shortcuts findShortcuts(Grid& map, const Distances& path)
   return ret;
 }
 
+Distances makeConstellation(int max)
+{
+  Distances ret{};
+
+  for(int x=0; x<=max; x++)
+  {
+    for(int y=0; y<=max-x; y++)
+    {
+      if(x==0 && y==0) continue;
+      if(x == 0)
+      {
+        ret.emplace_back(Grid::coord{0, y}, x+y);
+        ret.emplace_back(Grid::coord{0, -y}, x + y);
+      }
+      else if(y==0)
+      {
+        ret.emplace_back(Grid::coord{x, 0}, x+y);
+        ret.emplace_back(Grid::coord{-x, 0}, x+y);
+      }
+      else
+      {
+        ret.emplace_back(Grid::coord{x, y}, x+y);
+        ret.emplace_back(Grid::coord{-x, y}, x+y);
+        ret.emplace_back(Grid::coord{x, -y}, x+y);
+        ret.emplace_back(Grid::coord{-x, -y}, x+y);
+      }
+    }
+  }
+
+  return ret;
+}
+
 std::pair<std::uint64_t, std::uint64_t> process(std::ifstream&& input)
 {
   auto track = Grid{input};
   assert(input.is_open());
 
-  auto threshold = track.height < 20? 0 : 100;
+  auto threshold = track.height < 20? 50 : 100;
+  auto p1Constellation = makeConstellation(2);
+  auto p2Constellation = makeConstellation(20);
 
   Distances path = walk(track);
-  auto shortcuts = findShortcuts(track, path);
+  auto p1Shortcuts = findShortcuts(track, path, p1Constellation);
+  auto p2Shortcuts = findShortcuts(track, path, p2Constellation);
 
   size_t p1count = 0;
-  for(auto [saving, count] : shortcuts)
+  for(auto [saving, count] : p1Shortcuts)
     if(saving >= threshold) p1count += count;
 
-  return {p1count, 0};
+  size_t p2count = 0;
+  for(auto [saving, count] : p2Shortcuts)
+    if(saving >= threshold) p2count += count;
+
+  return {p1count, p2count};
 }
