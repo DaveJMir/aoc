@@ -25,7 +25,6 @@ static char offset2dir(Grid::offset o)
   assert(!"Bad dir");
 }
 
-
 struct State
 {
   std::optional<int> minPath;
@@ -89,32 +88,46 @@ std::vector<std::string> findAllShortest(Grid &keypad, Grid::Iterator start,
 }
 
 class KeyPad {
-  Grid keypad{3, 4, '.'};
+  Grid keypad;
+  Grid::Iterator pos;
+
+  std::map<std::pair<char,char>, uint64_t> cache{};
+
 public:
-  KeyPad(Grid keys) : keypad(keys) {}
+  KeyPad *subKeys = nullptr;
+  KeyPad(Grid keys) : keypad(keys), pos{keypad.find('A')} {}
 
-  std::vector<std::string> pressPaths(std::string_view code) {
-    auto pos = keypad.find('A');
+  uint64_t calcPath(Grid::Iterator from, Grid::Iterator to) {
+      uint64_t shortest = ~0;
+      if (subKeys == nullptr) {
+      for (auto &s : findAllShortest(keypad, from, to)) {
+        if (s.size() < shortest)
+          shortest = s.size();
+      }
+      } else {
+      for (auto &s : findAllShortest(keypad, from, to)) {
+        auto length = subKeys->pathLen(s);
+        if (length < shortest)
+          shortest = length;
+      }
+      }
+      return shortest;
+  }
 
-    std::vector<std::string> ret{};
-
-    for (char k : code) {
-     auto dest = keypad.find(k);
-     auto paths = findAllShortest(keypad, pos, dest);
-     pos = dest;
-
-     if (ret.size() == 0) {
-        std::swap(ret, paths);
-     } else {
-        std::vector<std::string> product{};
-        product.reserve(ret.size() * paths.size());
-        for (const auto &a : ret)
-          for (const auto &b : paths)
-            product.emplace_back(a + b);
-        std::swap(ret, product);
-     }
+  uint64_t pathLen(std::string_view code) {
+    uint64_t sum = 0;
+    for (char nextPress : code) {
+     auto goal = keypad.find(nextPress);
+      auto lookupKey = std::pair<char,char>{*pos, *goal};
+      if(!cache.contains(lookupKey))
+      {
+        cache[lookupKey] = calcPath(pos, goal);
+      }
+      sum += cache.at(lookupKey);
+      pos = goal;
     }
-    return ret;
+
+  return sum;
   }
 };
 
@@ -146,49 +159,40 @@ std::vector<std::string> loadCodes(std::ifstream& input)
   return ret;
 }
 
-std::uint64_t minimumOuterPress(std::string_view code)
+std::uint64_t minimumOuterPress(std::string_view code, int inners)
 {
   int64_t min = std::numeric_limits<int64_t>::max();
-  int64_t count =0;
   std::string sh = "";
   NumericPad pad{};
-  auto presses = pad.pressPaths(code);
-  DirectionPad p1{};
-  for (const auto &p : presses) {
-    auto p1presses = p1.pressPaths(p);
-     DirectionPad p2{};
-    for (const auto &q : p1presses) {
-     auto p2presses = p2.pressPaths(q);
-     for (const auto &x : p2presses) {
-      count++;
-        if (x.size() < min) {
-          min = x.size();
-          sh = x;
-        }
-     }
-    }
+
+  KeyPad* prevPad = &pad;
+  while(inners--)
+  {
+    prevPad->subKeys = new DirectionPad{};
+    prevPad = prevPad->subKeys;
   }
-  std::cout << "Code: " << code << ":" << "Len: " << min << ": " << sh << "\n";
-  std::cout << "Considered " << count << " options!\n";
+  auto presses = pad.pathLen(code);
+  return presses;
   return min;
 }
 
-std::pair<std::uint64_t, std::uint64_t> process(std::ifstream &&input) {
-  assert(input.is_open());
-  auto codes = loadCodes(input);
-
-
+std::uint64_t complexity(const std::vector<std::string> &codes, int inners) {
   uint64_t total = 0;
   for (const auto &c : codes) {
-    auto complexity = minimumOuterPress(c);
+    auto complexity = minimumOuterPress(c, inners);
     uint64_t codeNum;
     auto [ptr, ec] = std::from_chars(c.data(), c.data() + c.size(), codeNum);
 
     if (ec != std::errc()) {
      throw std::runtime_error("Conversion failed for token: " + std::string(c));
     }
-    total +=  codeNum * complexity;
+    total += codeNum * complexity;
   }
+  return total;
+}
 
-  return {total, 0};
+std::pair<std::uint64_t, std::uint64_t> process(std::ifstream &&input) {
+  assert(input.is_open());
+  auto codes = loadCodes(input);
+  return {complexity(codes,2), complexity(codes,25)};
 }
